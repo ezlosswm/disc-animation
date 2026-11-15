@@ -57,17 +57,25 @@
 		};
 	});
 
-	const activeIndex = $derived(Math.min(menu.length - 1, Math.floor(progress * menu.length)));
+	// activeIndex now tells us which image is currently closest to the center.
+	const activeIndex = $derived(Math.min(menu.length - 1, Math.round(progress * (menu.length - 1))));
 
-	const IMAGESIZE = 320;
-	const IMAGEGAP = 160;
+	const IMAGE_SIZE = 320;
+	// const IMAGE_GAP = 160;
+	const IMAGE_OVERLAP = 80;
 
-	const imageStride = IMAGEGAP + IMAGESIZE;
+	// THe images are closer together and the circular boundaries overlap.
+	// We need to change the distance between the starting positions of the images.
+	// Instead of adding space between the images, we're allowing them to overlap.
+	// We can achieve this with a negative top margin.
+	const imageStride = IMAGE_SIZE - IMAGE_OVERLAP;
 
 	// The active image is going to be centered verticaly inside the h[80vh] viewport
 	let VIEWPORT_HEIGHT = $state(0);
-	const centerOffset = $derived(VIEWPORT_HEIGHT / 2 - IMAGESIZE / 2);
-	let imageOffset = $derived(activeIndex * imageStride - centerOffset);
+
+	// We want to move the image track according to how far the user has scrolled.
+	// let imageOffset = $derived(activeIndex * imageStride - centerOffset);
+	let imageOffset = $derived(progress * (menu.length - 1) * imageStride);
 </script>
 
 <section class="h-dvh bg-[#F4BAA3]"></section>
@@ -78,39 +86,39 @@
     through the outer containter. -->
 	<!-- The user sees the same section but the scroll position
      continues advancing.  -->
-	<h1 class="py-5 text-center text-lg font-semibold">Interactive Section</h1>
 	<div class="sticky top-0 grid h-screen place-content-center overflow-hidden">
 		<!-- Background circle -->
 		<div
-			class="absolute top-1/2 left-1/2 grid aspect-square w-[85vw] max-w-212.5 -translate-1/2 place-content-center rounded-full bg-[#F4BAA3]/25"
-		>
-			<!-- Instead of clipping the entire image track into one circle, 
+			class="absolute top-1/2 left-1/2 grid aspect-square w-[min(85vw,900px)] -translate-1/2 place-content-center rounded-full bg-[#F4BAA3]/25"
+		></div>
+		<!-- Instead of clipping the entire image track into one circle, 
 			we're going to clip the track inside a larger rectangular viewport -->
 
-			<!-- Image viewport: controls which part of the vertical image is visible -->
-			<!-- Clips anything outside the visible area -->
+		<!-- Image viewport: controls which part of the vertical image is visible -->
+		<!-- Clips anything outside the visible area -->
+		<div bind:clientHeight={VIEWPORT_HEIGHT} class="relative z-10 h-[80vh] w-full overflow-hidden">
+			<!-- Holds all the images vertically -->
+			<!-- Moves all image cards together -->
+			<!-- Our first image starts at the top of the viewport, not the center.
+				 We want the first image to be centered vertically and every
+				 subsequent image to take its place. -->
 			<div
-				bind:clientHeight={VIEWPORT_HEIGHT}
-				class="relative z-10 h-[80vh] w-full overflow-hidden"
+				class="flex flex-col items-center gap-40 will-change-transform"
+				style={`transform: translate3d(0,calc((80vh - 20rem) / 2 - ${imageOffset}px),0)`}
 			>
-				<!-- Holds all the images vertically -->
-				<!-- Moves all image cards together -->
-				<div
-					class="flex flex-col items-center gap-40 transition-transform duration-700 ease-in-out"
-					style={`transform: translateY(-${imageOffset}px)`}
-				>
-					<!-- Image cards -->
-					{#each menu as item, i (item.title)}
-						<div class="size-80 shrink-0">
-							<img
-								src={item.image}
-								alt={item.title}
-								class="size-full object-cover"
-								class:opacity-20={activeIndex !== i}
-							/>
-						</div>
-					{/each}
-				</div>
+				<!-- Image cards -->
+				{#each menu as item, i (item.title)}
+					<div class="size-80 shrink-0 overflow-hidden rounded-full" class:-mt-20={i !== 0}>
+						<img
+							src={item.image}
+							alt={item.title}
+							loading="eager"
+							decoding="async"
+							class="size-full rounded-full object-cover"
+							class:opacity-20={activeIndex !== i}
+						/>
+					</div>
+				{/each}
 			</div>
 		</div>
 	</div>
